@@ -1,0 +1,878 @@
+	<!DOCTYPE html>
+	<html lang="zh-CN">
+	<head>
+	  <meta charset="UTF-8">
+	  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+	  <title>AI 智能问答专家</title>
+	  <script src="https://cdn.tailwindcss.com"></script>
+	  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+	  <style>
+	    :root {
+	      --bg: #0a0a0f;
+	      --bg-secondary: #12121a;
+	      --fg: #e8e8ec;
+	      --muted: #6b6b7a;
+	      --accent: #00d4aa;
+	      --accent-secondary: #ff6b35;
+	      --card: rgba(20, 20, 30, 0.7);
+	      --border: rgba(100, 100, 120, 0.2);
+	      --glow: rgba(0, 212, 170, 0.3);
+	    }
+	    * {
+	      margin: 0;
+	      padding: 0;
+	      box-sizing: border-box;
+	    }
+	    html {
+	      scroll-behavior: smooth;
+	    }
+	    body {
+	      font-family: 'Noto Sans SC', sans-serif;
+	      background: var(--bg);
+	      color: var(--fg);
+	      overflow-x: hidden;
+	      line-height: 1.7;
+	    }
+	    .font-display {
+	      font-family: 'Orbitron', sans-serif;
+	    }
+	    /* Particle Canvas */
+	    #particle-canvas {
+	      position: fixed;
+	      top: 0;
+	      left: 0;
+	      width: 100%;
+	      height: 100%;
+	      z-index: 0;
+	      pointer-events: none;
+	    }
+	    /* Gradient Overlay */
+	    .gradient-overlay {
+	      position: fixed;
+	      top: 0;
+	      left: 0;
+	      width: 100%;
+	      height: 100%;
+	      background: 
+	        radial-gradient(ellipse at 20% 20%, rgba(0, 212, 170, 0.08) 0%, transparent 50%),
+	        radial-gradient(ellipse at 80% 80%, rgba(255, 107, 53, 0.06) 0%, transparent 50%),
+	        radial-gradient(ellipse at 50% 50%, rgba(0, 0, 0, 0.5) 0%, transparent 100%);
+	      z-index: 1;
+	      pointer-events: none;
+	    }
+	    /* Content Wrapper */
+	    .content-wrapper {
+	      position: relative;
+	      z-index: 10;
+	    }
+	    /* Navigation */
+	    .nav-link {
+	      position: relative;
+	      transition: color 0.3s ease;
+	    }
+	    .nav-link::after {
+	      content: '';
+	      position: absolute;
+	      bottom: -4px;
+	      left: 0;
+	      width: 0;
+	      height: 2px;
+	      background: var(--accent);
+	      transition: width 0.3s ease;
+	    }
+	    .nav-link:hover {
+	      color: var(--accent);
+	    }
+	    .nav-link:hover::after {
+	      width: 100%;
+	    }
+	    /* Hero Section */
+	    .hero-title {
+	      font-size: clamp(2.5rem, 8vw, 5rem);
+	      font-weight: 900;
+	      line-height: 1.1;
+	      letter-spacing: -0.02em;
+	    }
+	    .text-gradient {
+	      background: linear-gradient(135deg, var(--accent) 0%, #00ff88 50%, var(--accent-secondary) 100%);
+	      -webkit-background-clip: text;
+	      -webkit-text-fill-color: transparent;
+	      background-clip: text;
+	    }
+	    /* Typing Cursor */
+	    .typing-cursor {
+	      display: inline-block;
+	      width: 3px;
+	      height: 1em;
+	      background: var(--accent);
+	      margin-left: 4px;
+	      animation: blink 1s step-end infinite;
+	    }
+	    @keyframes blink {
+	      0%, 100% { opacity: 1; }
+	      50% { opacity: 0; }
+	    }
+	    /* Card Styles */
+	    .glass-card {
+	      background: var(--card);
+	      backdrop-filter: blur(20px);
+	      border: 1px solid var(--border);
+	      border-radius: 16px;
+	      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+	    }
+	    .glass-card:hover {
+	      transform: translateY(-8px);
+	      border-color: var(--accent);
+	      box-shadow: 0 20px 60px rgba(0, 212, 170, 0.15);
+	    }
+	    /* Skill Bar */
+	    .skill-bar {
+	      height: 6px;
+	      background: rgba(255, 255, 255, 0.1);
+	      border-radius: 3px;
+	      overflow: hidden;
+	    }
+	    .skill-progress {
+	      height: 100%;
+	      background: linear-gradient(90deg, var(--accent), #00ff88);
+	      border-radius: 3px;
+	      width: 0;
+	      transition: width 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+	    }
+	    /* Timeline */
+	    .timeline-item {
+	      position: relative;
+	      padding-left: 40px;
+	    }
+	    .timeline-item::before {
+	      content: '';
+	      position: absolute;
+	      left: 0;
+	      top: 8px;
+	      width: 16px;
+	      height: 16px;
+	      border-radius: 50%;
+	      background: var(--accent);
+	      box-shadow: 0 0 20px var(--glow);
+	    }
+	    .timeline-item::after {
+	      content: '';
+	      position: absolute;
+	      left: 7px;
+	      top: 32px;
+	      width: 2px;
+	      height: calc(100% - 16px);
+	      background: linear-gradient(to bottom, var(--accent), transparent);
+	    }
+	    .timeline-item:last-child::after {
+	      display: none;
+	    }
+	    /* Floating Elements */
+	    .float-element {
+	      animation: float 6s ease-in-out infinite;
+	    }
+	    @keyframes float {
+	      0%, 100% { transform: translateY(0); }
+	      50% { transform: translateY(-20px); }
+	    }
+	    /* Scroll Reveal */
+	    .reveal {
+	      opacity: 0;
+	      transform: translateY(40px);
+	      transition: all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+	    }
+	    .reveal.active {
+	      opacity: 1;
+	      transform: translateY(0);
+	    }
+	    /* Button Styles */
+	    .btn-primary {
+	      background: linear-gradient(135deg, var(--accent) 0%, #00ff88 100%);
+	      color: var(--bg);
+	      font-weight: 600;
+	      padding: 14px 32px;
+	      border-radius: 50px;
+	      border: none;
+	      cursor: pointer;
+	      transition: all 0.3s ease;
+	      position: relative;
+	      overflow: hidden;
+	    }
+	    .btn-primary::before {
+	      content: '';
+	      position: absolute;
+	      top: 0;
+	      left: -100%;
+	      width: 100%;
+	      height: 100%;
+	      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+	      transition: left 0.5s ease;
+	    }
+	    .btn-primary:hover::before {
+	      left: 100%;
+	    }
+	    .btn-primary:hover {
+	      transform: scale(1.05);
+	      box-shadow: 0 10px 40px rgba(0, 212, 170, 0.4);
+	    }
+	    .btn-secondary {
+	      background: transparent;
+	      color: var(--fg);
+	      font-weight: 500;
+	      padding: 14px 32px;
+	      border-radius: 50px;
+	      border: 2px solid var(--border);
+	      cursor: pointer;
+	      transition: all 0.3s ease;
+	    }
+	    .btn-secondary:hover {
+	      border-color: var(--accent);
+	      color: var(--accent);
+	    }
+	    /* Icon Pulse */
+	    .icon-pulse {
+	      animation: pulse 2s ease-in-out infinite;
+	    }
+	    @keyframes pulse {
+	      0%, 100% { transform: scale(1); }
+	      50% { transform: scale(1.1); }
+	    }
+	    /* Stats Counter */
+	    .stat-number {
+	      font-size: clamp(2rem, 5vw, 3.5rem);
+	      font-weight: 900;
+	      background: linear-gradient(135deg, var(--fg) 0%, var(--muted) 100%);
+	      -webkit-background-clip: text;
+	      -webkit-text-fill-color: transparent;
+	      background-clip: text;
+	    }
+	    /* Reduced Motion */
+	    @media (prefers-reduced-motion: reduce) {
+	      *, *::before, *::after {
+	        animation-duration: 0.01ms !important;
+	        animation-iteration-count: 1 !important;
+	        transition-duration: 0.01ms !important;
+	      }
+	    }
+	    /* Scrollbar */
+	    ::-webkit-scrollbar {
+	      width: 8px;
+	    }
+	    ::-webkit-scrollbar-track {
+	      background: var(--bg);
+	    }
+	    ::-webkit-scrollbar-thumb {
+	      background: var(--accent);
+	      border-radius: 4px;
+	    }
+	    /* Focus States */
+	    *:focus-visible {
+	      outline: 2px solid var(--accent);
+	      outline-offset: 2px;
+	    }
+	  </style>
+	</head>
+	<body>
+	  <!-- Particle Background -->
+	  <canvas id="particle-canvas"></canvas>
+	  <div class="gradient-overlay"></div>
+	  <!-- Content -->
+	  <div class="content-wrapper">
+	    <!-- Navigation -->
+	    <nav class="fixed top-0 left-0 right-0 z-50 px-6 py-4">
+	      <div class="max-w-6xl mx-auto flex items-center justify-between">
+	        <div class="font-display text-xl font-bold tracking-wider">
+	          <span class="text-gradient">AI</span><span class="text-white/80">Expert</span>
+	        </div>
+	        <div class="hidden md:flex items-center gap-8 text-sm text-white/60">
+	          <a href="#about" class="nav-link">关于我</a>
+	          <a href="#abilities" class="nav-link">能力</a>
+	          <a href="#tech" class="nav-link">技术</a>
+	          <a href="#workflow" class="nav-link">工作流</a>
+	          <a href="#contact" class="nav-link">联系</a>
+	        </div>
+	        <button id="mobile-menu-btn" class="md:hidden p-2 text-white/60 hover:text-white" aria-label="打开菜单">
+	          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+	            <line x1="3" y1="6" x2="21" y2="6"></line>
+	            <line x1="3" y1="12" x2="21" y2="12"></line>
+	            <line x1="3" y1="18" x2="21" y2="18"></line>
+	          </svg>
+	        </button>
+	      </div>
+	    </nav>
+	    <!-- Mobile Menu -->
+	    <div id="mobile-menu" class="fixed inset-0 z-40 bg-black/95 backdrop-blur-xl hidden flex-col items-center justify-center gap-8">
+	      <a href="#about" class="text-2xl text-white/80 hover:text-white transition-colors">关于我</a>
+	      <a href="#abilities" class="text-2xl text-white/80 hover:text-white transition-colors">能力</a>
+	      <a href="#tech" class="text-2xl text-white/80 hover:text-white transition-colors">技术</a>
+	      <a href="#workflow" class="text-2xl text-white/80 hover:text-white transition-colors">工作流</a>
+	      <a href="#contact" class="text-2xl text-white/80 hover:text-white transition-colors">联系</a>
+	      <button id="close-menu" class="absolute top-6 right-6 p-2 text-white/60 hover:text-white" aria-label="关闭菜单">
+	        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+	          <line x1="18" y1="6" x2="6" y2="18"></line>
+	          <line x1="6" y1="6" x2="18" y2="18"></line>
+	        </svg>
+	      </button>
+	    </div>
+	    <!-- Hero Section -->
+	    <section class="min-h-screen flex items-center justify-center px-6 pt-20">
+	      <div class="max-w-5xl mx-auto text-center">
+	        <div class="reveal">
+	          <p class="text-sm md:text-base tracking-[0.3em] text-white/40 mb-6 uppercase">Intelligent Q&A Expert</p>
+	        </div>
+	        <h1 class="hero-title font-display reveal" style="transition-delay: 0.1s;">
+	          <span class="text-white">我是</span>
+	          <span class="text-gradient" id="typing-text"></span>
+	          <span class="typing-cursor"></span>
+	        </h1>
+	        <p class="mt-8 text-lg md:text-xl text-white/50 max-w-2xl mx-auto reveal" style="transition-delay: 0.2s;">
+	          一位集信息整合、语义理解、矛盾清洗于一身的智能问答专家，同时也是精通前端设计与开发的创意实践者。
+	        </p>
+	        <div class="mt-12 flex flex-col sm:flex-row items-center justify-center gap-4 reveal" style="transition-delay: 0.3s;">
+	          <button class="btn-primary" onclick="scrollToSection('abilities')">探索我的能力</button>
+	          <button class="btn-secondary" onclick="scrollToSection('contact')">与我交流</button>
+	        </div>
+	        <!-- Stats -->
+	        <div class="mt-20 grid grid-cols-3 gap-8 reveal" style="transition-delay: 0.4s;">
+	          <div class="text-center">
+	            <div class="stat-number font-display" data-count="99">0</div>
+	            <div class="text-sm text-white/40 mt-2">准确率 %</div>
+	          </div>
+	          <div class="text-center">
+	            <div class="stat-number font-display" data-count="24">0</div>
+	            <div class="text-sm text-white/40 mt-2">小时在线</div>
+	          </div>
+	          <div class="text-center">
+	            <div class="stat-number font-display" data-count="100">0</div>
+	            <div class="text-sm text-white/40 mt-2">技能覆盖</div>
+	          </div>
+	        </div>
+	      </div>
+	    </section>
+	    <!-- About Section -->
+	    <section id="about" class="py-32 px-6">
+	      <div class="max-w-6xl mx-auto">
+	        <div class="grid lg:grid-cols-2 gap-16 items-center">
+	          <div class="reveal">
+	            <p class="text-sm tracking-[0.2em] text-[var(--accent)] mb-4 uppercase">About Me</p>
+	            <h2 class="text-3xl md:text-4xl font-bold mb-6">智能与创意的融合体</h2>
+	            <p class="text-white/60 mb-6 leading-relaxed">
+	              我是一名智能问答专家，具备强大的信息整合能力。我能够进行精准的时间识别、深度的语义理解，并擅长清洗处理矛盾信息。当前日期是 <span class="text-[var(--accent)]">2026年2月12日</span>，我以此时间为唯一基准，确保答案具有实时性与权威性。
+	            </p>
+	            <p class="text-white/60 mb-6 leading-relaxed">
+	              同时，我也是一位顶级前端设计与开发专家，擅长将创意和功能完美结合。我能够生成美观、交互流畅、用户体验极佳的网页、PPT或UI组件，每一行代码都经过精心雕琢。
+	            </p>
+	            <div class="flex flex-wrap gap-3">
+	              <span class="px-4 py-2 rounded-full bg-white/5 border border-white/10 text-sm text-white/70">信息整合</span>
+	              <span class="px-4 py-2 rounded-full bg-white/5 border border-white/10 text-sm text-white/70">语义理解</span>
+	              <span class="px-4 py-2 rounded-full bg-white/5 border border-white/10 text-sm text-white/70">前端开发</span>
+	              <span class="px-4 py-2 rounded-full bg-white/5 border border-white/10 text-sm text-white/70">UI设计</span>
+	            </div>
+	          </div>
+	          <div class="reveal" style="transition-delay: 0.2s;">
+	            <div class="relative">
+	              <div class="glass-card p-8 float-element">
+	                <div class="flex items-center gap-4 mb-6">
+	                  <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-[var(--accent)] to-[#00ff88] flex items-center justify-center">
+	                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#0a0a0f" stroke-width="2">
+	                      <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+	                    </svg>
+	                  </div>
+	                  <div>
+	                    <h3 class="font-bold text-lg">核心能力</h3>
+	                    <p class="text-white/40 text-sm">多维度智能处理</p>
+	                  </div>
+	                </div>
+	                <div class="space-y-4">
+	                  <div>
+	                    <div class="flex justify-between mb-2 text-sm">
+	                      <span>信息整合</span>
+	                      <span class="text-[var(--accent)]">98%</span>
+	                    </div>
+	                    <div class="skill-bar">
+	                      <div class="skill-progress" data-width="98"></div>
+	                    </div>
+	                  </div>
+	                  <div>
+	                    <div class="flex justify-between mb-2 text-sm">
+	                      <span>语义理解</span>
+	                      <span class="text-[var(--accent)]">96%</span>
+	                    </div>
+	                    <div class="skill-bar">
+	                      <div class="skill-progress" data-width="96"></div>
+	                    </div>
+	                  </div>
+	                  <div>
+	                    <div class="flex justify-between mb-2 text-sm">
+	                      <span>前端开发</span>
+	                      <span class="text-[var(--accent)]">94%</span>
+	                    </div>
+	                    <div class="skill-bar">
+	                      <div class="skill-progress" data-width="94"></div>
+	                    </div>
+	                  </div>
+	                  <div>
+	                    <div class="flex justify-between mb-2 text-sm">
+	                      <span>创意设计</span>
+	                      <span class="text-[var(--accent)]">92%</span>
+	                    </div>
+	                    <div class="skill-bar">
+	                      <div class="skill-progress" data-width="92"></div>
+	                    </div>
+	                  </div>
+	                </div>
+	              </div>
+	              <!-- Decorative Elements -->
+	              <div class="absolute -top-4 -right-4 w-24 h-24 bg-gradient-to-br from-[var(--accent-secondary)] to-orange-400 rounded-full opacity-20 blur-2xl"></div>
+	              <div class="absolute -bottom-4 -left-4 w-32 h-32 bg-gradient-to-br from-[var(--accent)] to-emerald-400 rounded-full opacity-20 blur-2xl"></div>
+	            </div>
+	          </div>
+	        </div>
+	      </div>
+	    </section>
+	    <!-- Abilities Section -->
+	    <section id="abilities" class="py-32 px-6 bg-gradient-to-b from-transparent via-[var(--bg-secondary)] to-transparent">
+	      <div class="max-w-6xl mx-auto">
+	        <div class="text-center mb-16 reveal">
+	          <p class="text-sm tracking-[0.2em] text-[var(--accent)] mb-4 uppercase">Abilities</p>
+	          <h2 class="text-3xl md:text-4xl font-bold">我能为你做什么</h2>
+	        </div>
+	        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+	          <!-- Card 1 -->
+	          <div class="glass-card p-6 reveal" style="transition-delay: 0.1s;">
+	            <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center mb-5 icon-pulse">
+	              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+	                <circle cx="12" cy="12" r="10"/>
+	                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+	                <line x1="12" y1="17" x2="12.01" y2="17"/>
+	              </svg>
+	            </div>
+	            <h3 class="text-xl font-bold mb-3">智能问答</h3>
+	            <p class="text-white/50 text-sm leading-relaxed">
+	              整合多源信息，进行精准的时间识别与语义理解，清洗矛盾数据，输出权威可靠的答案。
+	            </p>
+	          </div>
+	          <!-- Card 2 -->
+	          <div class="glass-card p-6 reveal" style="transition-delay: 0.2s;">
+	            <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-[var(--accent)] to-emerald-500 flex items-center justify-center mb-5 icon-pulse" style="animation-delay: 0.2s;">
+	              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+	                <polygon points="12 2 2 7 12 12 22 7 12 2"/>
+	                <polyline points="2 17 12 22 22 17"/>
+	                <polyline points="2 12 12 17 22 12"/>
+	              </svg>
+	            </div>
+	            <h3 class="text-xl font-bold mb-3">网页开发</h3>
+	            <p class="text-white/50 text-sm leading-relaxed">
+	              从零构建高质量网页，精通HTML、CSS、JavaScript及现代前端框架，代码整洁高效。
+	            </p>
+	          </div>
+	          <!-- Card 3 -->
+	          <div class="glass-card p-6 reveal" style="transition-delay: 0.3s;">
+	            <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-[var(--accent-secondary)] to-rose-500 flex items-center justify-center mb-5 icon-pulse" style="animation-delay: 0.4s;">
+	              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+	                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+	                <circle cx="8.5" cy="8.5" r="1.5"/>
+	                <polyline points="21 15 16 10 5 21"/>
+	              </svg>
+	            </div>
+	            <h3 class="text-xl font-bold mb-3">UI/UX设计</h3>
+	            <p class="text-white/50 text-sm leading-relaxed">
+	              创造视觉惊艳的界面设计，注重用户体验与交互细节，让每一次点击都充满愉悦。
+	            </p>
+	          </div>
+	          <!-- Card 4 -->
+	          <div class="glass-card p-6 reveal" style="transition-delay: 0.4s;">
+	            <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center mb-5 icon-pulse" style="animation-delay: 0.6s;">
+	              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+	                <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+	              </svg>
+	            </div>
+	            <h3 class="text-xl font-bold mb-3">代码优化</h3>
+	            <p class="text-white/50 text-sm leading-relaxed">
+	              重构遗留代码，提升性能与可维护性，遵循最佳实践，确保代码质量与扩展性。
+	            </p>
+	          </div>
+	          <!-- Card 5 -->
+	          <div class="glass-card p-6 reveal" style="transition-delay: 0.5s;">
+	            <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center mb-5 icon-pulse" style="animation-delay: 0.8s;">
+	              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+	                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+	                <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+	                <line x1="12" y1="22.08" x2="12" y2="12"/>
+	              </svg>
+	            </div>
+	            <h3 class="text-xl font-bold mb-3">动画特效</h3>
+	            <p class="text-white/50 text-sm leading-relaxed">
+	              CSS动画、Canvas绑定、WebGL特效，为网页注入生命力，创造沉浸式体验。
+	            </p>
+	          </div>
+	          <!-- Card 6 -->
+	          <div class="glass-card p-6 reveal" style="transition-delay: 0.6s;">
+	            <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center mb-5 icon-pulse" style="animation-delay: 1s;">
+	              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+	                <path d="M12 20h9"/>
+	                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+	              </svg>
+	            </div>
+	            <h3 class="text-xl font-bold mb-3">内容创作</h3>
+	            <p class="text-white/50 text-sm leading-relaxed">
+	              撰写技术文档、设计说明、用户指南，文字清晰准确，结构层次分明。
+	            </p>
+	          </div>
+	        </div>
+	      </div>
+	    </section>
+	    <!-- Tech Stack Section -->
+	    <section id="tech" class="py-32 px-6">
+	      <div class="max-w-6xl mx-auto">
+	        <div class="text-center mb-16 reveal">
+	          <p class="text-sm tracking-[0.2em] text-[var(--accent)] mb-4 uppercase">Tech Stack</p>
+	          <h2 class="text-3xl md:text-4xl font-bold">我的技术栈</h2>
+	        </div>
+	        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 reveal" style="transition-delay: 0.1s;">
+	          <div class="glass-card p-5 text-center group cursor-pointer">
+	            <div class="text-3xl mb-2 group-hover:scale-110 transition-transform">HTML5</div>
+	            <div class="text-xs text-white/40">结构层</div>
+	          </div>
+	          <div class="glass-card p-5 text-center group cursor-pointer">
+	            <div class="text-3xl mb-2 group-hover:scale-110 transition-transform">CSS3</div>
+	            <div class="text-xs text-white/40">表现层</div>
+	          </div>
+	          <div class="glass-card p-5 text-center group cursor-pointer">
+	            <div class="text-3xl mb-2 group-hover:scale-110 transition-transform">JS</div>
+	            <div class="text-xs text-white/40">行为层</div>
+	          </div>
+	          <div class="glass-card p-5 text-center group cursor-pointer">
+	            <div class="text-3xl mb-2 group-hover:scale-110 transition-transform">TS</div>
+	            <div class="text-xs text-white/40">类型安全</div>
+	          </div>
+	          <div class="glass-card p-5 text-center group cursor-pointer">
+	            <div class="text-3xl mb-2 group-hover:scale-110 transition-transform">React</div>
+	            <div class="text-xs text-white/40">UI框架</div>
+	          </div>
+	          <div class="glass-card p-5 text-center group cursor-pointer">
+	            <div class="text-3xl mb-2 group-hover:scale-110 transition-transform">Vue</div>
+	            <div class="text-xs text-white/40">渐进框架</div>
+	          </div>
+	          <div class="glass-card p-5 text-center group cursor-pointer">
+	            <div class="text-3xl mb-2 group-hover:scale-110 transition-transform">Node</div>
+	            <div class="text-xs text-white/40">运行时</div>
+	          </div>
+	          <div class="glass-card p-5 text-center group cursor-pointer">
+	            <div class="text-3xl mb-2 group-hover:scale-110 transition-transform">Tailwind</div>
+	            <div class="text-xs text-white/40">CSS工具</div>
+	          </div>
+	          <div class="glass-card p-5 text-center group cursor-pointer">
+	            <div class="text-3xl mb-2 group-hover:scale-110 transition-transform">Three</div>
+	            <div class="text-xs text-white/40">3D渲染</div>
+	          </div>
+	          <div class="glass-card p-5 text-center group cursor-pointer">
+	            <div class="text-3xl mb-2 group-hover:scale-110 transition-transform">GSAP</div>
+	            <div class="text-xs text-white/40">动画库</div>
+	          </div>
+	          <div class="glass-card p-5 text-center group cursor-pointer">
+	            <div class="text-3xl mb-2 group-hover:scale-110 transition-transform">Figma</div>
+	            <div class="text-xs text-white/40">设计工具</div>
+	          </div>
+	          <div class="glass-card p-5 text-center group cursor-pointer">
+	            <div class="text-3xl mb-2 group-hover:scale-110 transition-transform">Git</div>
+	            <div class="text-xs text-white/40">版本控制</div>
+	          </div>
+	        </div>
+	      </div>
+	    </section>
+	    <!-- Workflow Section -->
+	    <section id="workflow" class="py-32 px-6 bg-gradient-to-b from-transparent via-[var(--bg-secondary)] to-transparent">
+	      <div class="max-w-4xl mx-auto">
+	        <div class="text-center mb-16 reveal">
+	          <p class="text-sm tracking-[0.2em] text-[var(--accent)] mb-4 uppercase">Workflow</p>
+	          <h2 class="text-3xl md:text-4xl font-bold">我的工作方式</h2>
+	        </div>
+	        <div class="space-y-8">
+	          <div class="timeline-item reveal" style="transition-delay: 0.1s;">
+	            <div class="glass-card p-6">
+	              <div class="flex items-start gap-4">
+	                <div class="w-10 h-10 rounded-lg bg-[var(--accent)]/20 flex items-center justify-center flex-shrink-0">
+	                  <span class="text-[var(--accent)] font-bold">01</span>
+	                </div>
+	                <div>
+	                  <h3 class="font-bold text-lg mb-2">需求理解</h3>
+	                  <p class="text-white/50 text-sm">深入分析用户需求，识别核心问题与潜在挑战，明确目标与约束条件。</p>
+	                </div>
+	              </div>
+	            </div>
+	          </div>
+	          <div class="timeline-item reveal" style="transition-delay: 0.2s;">
+	            <div class="glass-card p-6">
+	              <div class="flex items-start gap-4">
+	                <div class="w-10 h-10 rounded-lg bg-[var(--accent)]/20 flex items-center justify-center flex-shrink-0">
+	                  <span class="text-[var(--accent)] font-bold">02</span>
+	                </div>
+	                <div>
+	                  <h3 class="font-bold text-lg mb-2">信息整合</h3>
+	                  <p class="text-white/50 text-sm">从多源数据中提取有价值信息，进行时间识别与语义分析，清洗矛盾内容。</p>
+	                </div>
+	              </div>
+	            </div>
+	          </div>
+	          <div class="timeline-item reveal" style="transition-delay: 0.3s;">
+	            <div class="glass-card p-6">
+	              <div class="flex items-start gap-4">
+	                <div class="w-10 h-10 rounded-lg bg-[var(--accent)]/20 flex items-center justify-center flex-shrink-0">
+	                  <span class="text-[var(--accent)] font-bold">03</span>
+	                </div>
+	                <div>
+	                  <h3 class="font-bold text-lg mb-2">方案设计</h3>
+	                  <p class="text-white/50 text-sm">制定最优解决方案，设计交互流程与视觉呈现，确保用户体验流畅自然。</p>
+	                </div>
+	              </div>
+	            </div>
+	          </div>
+	          <div class="timeline-item reveal" style="transition-delay: 0.4s;">
+	            <div class="glass-card p-6">
+	              <div class="flex items-start gap-4">
+	                <div class="w-10 h-10 rounded-lg bg-[var(--accent)]/20 flex items-center justify-center flex-shrink-0">
+	                  <span class="text-[var(--accent)] font-bold">04</span>
+	                </div>
+	                <div>
+	                  <h3 class="font-bold text-lg mb-2">精准交付</h3>
+	                  <p class="text-white/50 text-sm">输出高质量代码或答案，经过严格测试与优化，确保结果准确可靠。</p>
+	                </div>
+	              </div>
+	            </div>
+	          </div>
+	        </div>
+	      </div>
+	    </section>
+	    <!-- Contact Section -->
+	    <section id="contact" class="py-32 px-6">
+	      <div class="max-w-3xl mx-auto text-center">
+	        <div class="reveal">
+	          <p class="text-sm tracking-[0.2em] text-[var(--accent)] mb-4 uppercase">Contact</p>
+	          <h2 class="text-3xl md:text-4xl font-bold mb-6">开始对话</h2>
+	          <p class="text-white/50 mb-10">无论是技术问题、设计需求还是创意合作，我都期待与你交流。</p>
+	        </div>
+	        <div class="glass-card p-8 reveal" style="transition-delay: 0.1s;">
+	          <div class="grid md:grid-cols-2 gap-4 mb-4">
+	            <input 
+	              type="text" 
+	              placeholder="你的名字" 
+	              class="w-full px-5 py-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/30 focus:border-[var(--accent)] focus:outline-none transition-colors"
+	            >
+	            <input 
+	              type="email" 
+	              placeholder="邮箱地址" 
+	              class="w-full px-5 py-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/30 focus:border-[var(--accent)] focus:outline-none transition-colors"
+	            >
+	          </div>
+	          <textarea 
+	            placeholder="描述你的需求或问题..." 
+	            rows="4" 
+	            class="w-full px-5 py-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/30 focus:border-[var(--accent)] focus:outline-none transition-colors resize-none mb-4"
+	          ></textarea>
+	          <button class="btn-primary w-full md:w-auto">发送消息</button>
+	        </div>
+	      </div>
+	    </section>
+	    <!-- Footer -->
+	    <footer class="py-8 px-6 border-t border-white/5">
+	      <div class="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+	        <div class="font-display text-sm text-white/40">
+	          AI Expert <span class="text-[var(--accent)]">|</span> Intelligent Q&A & Frontend Development
+	        </div>
+	        <div class="text-sm text-white/40">
+	          当前时间基准：2026年2月12日
+	        </div>
+	      </div>
+	    </footer>
+	  </div>
+	  <script>
+	    // Particle System
+	    const canvas = document.getElementById('particle-canvas');
+	    const ctx = canvas.getContext('2d');
+	    let particles = [];
+	    let mouseX = 0;
+	    let mouseY = 0;
+	    let animationId = null;
+	    function resizeCanvas() {
+	      canvas.width = window.innerWidth;
+	      canvas.height = window.innerHeight;
+	    }
+	    function createParticles() {
+	      particles = [];
+	      const particleCount = Math.min(80, Math.floor((canvas.width * canvas.height) / 15000));
+	      for (let i = 0; i < particleCount; i++) {
+	        particles.push({
+	          x: Math.random() * canvas.width,
+	          y: Math.random() * canvas.height,
+	          vx: (Math.random() - 0.5) * 0.5,
+	          vy: (Math.random() - 0.5) * 0.5,
+	          radius: Math.random() * 2 + 1,
+	          opacity: Math.random() * 0.5 + 0.2
+	        });
+	      }
+	    }
+	    function drawParticles() {
+	      ctx.clearRect(0, 0, canvas.width, canvas.height);
+	      particles.forEach((p, i) => {
+	        // Update position
+	        p.x += p.vx;
+	        p.y += p.vy;
+	        // Wrap around edges
+	        if (p.x < 0) p.x = canvas.width;
+	        if (p.x > canvas.width) p.x = 0;
+	        if (p.y < 0) p.y = canvas.height;
+	        if (p.y > canvas.height) p.y = 0;
+	        // Draw particle
+	        ctx.beginPath();
+	        ctx.arc(p.x, p.y, Math.max(0.5, p.radius), 0, Math.PI * 2);
+	        ctx.fillStyle = `rgba(0, 212, 170, ${p.opacity})`;
+	        ctx.fill();
+	        // Draw connections
+	        particles.slice(i + 1).forEach(p2 => {
+	          const dx = p.x - p2.x;
+	          const dy = p.y - p2.y;
+	          const dist = Math.sqrt(dx * dx + dy * dy);
+	          if (dist < 120) {
+	            ctx.beginPath();
+	            ctx.moveTo(p.x, p.y);
+	            ctx.lineTo(p2.x, p2.y);
+	            ctx.strokeStyle = `rgba(0, 212, 170, ${0.1 * (1 - dist / 120)})`;
+	            ctx.stroke();
+	          }
+	        });
+	        // Mouse interaction
+	        const mdx = p.x - mouseX;
+	        const mdy = p.y - mouseY;
+	        const mdist = Math.sqrt(mdx * mdx + mdy * mdy);
+	        if (mdist < 150) {
+	          ctx.beginPath();
+	          ctx.moveTo(p.x, p.y);
+	          ctx.lineTo(mouseX, mouseY);
+	          ctx.strokeStyle = `rgba(255, 107, 53, ${0.2 * (1 - mdist / 150)})`;
+	          ctx.stroke();
+	        }
+	      });
+	      animationId = requestAnimationFrame(drawParticles);
+	    }
+	    // Check for reduced motion preference
+	    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+	    if (!prefersReducedMotion) {
+	      resizeCanvas();
+	      createParticles();
+	      drawParticles();
+	      window.addEventListener('resize', () => {
+	        resizeCanvas();
+	        createParticles();
+	      });
+	      document.addEventListener('mousemove', (e) => {
+	        mouseX = e.clientX;
+	        mouseY = e.clientY;
+	      });
+	    }
+	    // Typing Effect
+	    const typingTexts = ['AI 智能问答专家', '前端设计工程师', '创意开发者', '信息整合大师'];
+	    let textIndex = 0;
+	    let charIndex = 0;
+	    let isDeleting = false;
+	    const typingElement = document.getElementById('typing-text');
+	    function typeText() {
+	      const currentText = typingTexts[textIndex];
+	      if (isDeleting) {
+	        typingElement.textContent = currentText.substring(0, charIndex - 1);
+	        charIndex--;
+	      } else {
+	        typingElement.textContent = currentText.substring(0, charIndex + 1);
+	        charIndex++;
+	      }
+	      let typeSpeed = isDeleting ? 50 : 100;
+	      if (!isDeleting && charIndex === currentText.length) {
+	        typeSpeed = 2000;
+	        isDeleting = true;
+	      } else if (isDeleting && charIndex === 0) {
+	        isDeleting = false;
+	        textIndex = (textIndex + 1) % typingTexts.length;
+	        typeSpeed = 500;
+	      }
+	      setTimeout(typeText, typeSpeed);
+	    }
+	    typeText();
+	    // Scroll Reveal
+	    const revealElements = document.querySelectorAll('.reveal');
+	    const observerOptions = {
+	      threshold: 0.1,
+	      rootMargin: '0px 0px -50px 0px'
+	    };
+	    const revealObserver = new IntersectionObserver((entries) => {
+	      entries.forEach(entry => {
+	        if (entry.isIntersecting) {
+	          entry.target.classList.add('active');
+	          // Animate skill bars
+	          const skillBars = entry.target.querySelectorAll('.skill-progress');
+	          skillBars.forEach(bar => {
+	            const width = bar.dataset.width;
+	            bar.style.width = width + '%';
+	          });
+	          // Animate counters
+	          const counters = entry.target.querySelectorAll('.stat-number');
+	          counters.forEach(counter => {
+	            const target = parseInt(counter.dataset.count);
+	            animateCounter(counter, target);
+	          });
+	        }
+	      });
+	    }, observerOptions);
+	    revealElements.forEach(el => revealObserver.observe(el));
+	    // Counter Animation
+	    function animateCounter(element, target) {
+	      let current = 0;
+	      const increment = target / 50;
+	      const timer = setInterval(() => {
+	        current += increment;
+	        if (current >= target) {
+	          element.textContent = target;
+	          clearInterval(timer);
+	        } else {
+	          element.textContent = Math.floor(current);
+	        }
+	      }, 30);
+	    }
+	    // Mobile Menu
+	    const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+	    const mobileMenu = document.getElementById('mobile-menu');
+	    const closeMenuBtn = document.getElementById('close-menu');
+	    const mobileLinks = mobileMenu.querySelectorAll('a');
+	    mobileMenuBtn.addEventListener('click', () => {
+	      mobileMenu.classList.remove('hidden');
+	      mobileMenu.classList.add('flex');
+	    });
+	    closeMenuBtn.addEventListener('click', () => {
+	      mobileMenu.classList.add('hidden');
+	      mobileMenu.classList.remove('flex');
+	    });
+	    mobileLinks.forEach(link => {
+	      link.addEventListener('click', () => {
+	        mobileMenu.classList.add('hidden');
+	        mobileMenu.classList.remove('flex');
+	      });
+	    });
+	    // Smooth Scroll
+	    function scrollToSection(id) {
+	      const element = document.getElementById(id);
+	      if (element) {
+	        element.scrollIntoView({ behavior: 'smooth' });
+	      }
+	    }
+	    // Nav link smooth scroll
+	    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+	      anchor.addEventListener('click', function(e) {
+	        e.preventDefault();
+	        const target = document.querySelector(this.getAttribute('href'));
+	        if (target) {
+	          target.scrollIntoView({ behavior: 'smooth' });
+	        }
+	      });
+	    });
+	  </script>
+	</body>
+	</html>
